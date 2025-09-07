@@ -3,13 +3,16 @@ import scala.annotation.tailrec
 object Main {
 
   def main(args: Array[String]): Unit = {
-    println(pascal(0,2)) // 1
-    println(pascal(1,2)) // 2
-    println(pascal(1,3)) // 3
-
-    println(balance(":-)".toList)) // false
-    println(balance("())(".toList)) // false
-    println(balance("(())()()".toList)) // true
+//    println(pascal(0,2)) // 1
+//    println(pascal(1,2)) // 2
+//    println(pascal(1,3)) // 3
+//
+//    println(balance(":-)".toList)) // false
+//    println(balance("())(".toList)) // false
+//    println(balance("(())()()".toList)) // true
+//
+//    println(countChange(4, List(1, 2))) // 3
+//    println(countChange(5, List(1, 2, 3))) // 5
   }
 
   def pascal(c: Int, r: Int): Int = {
@@ -39,7 +42,11 @@ object Main {
   }
 
   def countChange(money: Int, coins: List[Int]): Int = {
-    0
+    if (money == 0) 1
+    else if (money < 0 || coins.isEmpty) 0
+    else {
+      countChange(money - coins.head, coins) + countChange(money, coins.tail)
+    }
   }
 
 }
