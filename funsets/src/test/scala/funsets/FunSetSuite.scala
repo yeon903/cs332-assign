@@ -232,4 +232,166 @@ class FunSetSuite extends FunSuite {
     }
   }
 
+  test("forall tests") {
+    new TestSets {
+      val s1234 = union(union(s1, s2), union(s3, s4))  // {1, 2, 3, 4}
+      val s24 = union(s2, s4)  // {2, 4}
+
+      // 모든 원소가 양수인가?
+      assert(forall(s1234, x => x > 0), "All elements are positive")
+      assert(!forall(s1234, x => x > 2), "Not all elements are > 2")
+
+      // 모든 원소가 짝수인가?
+      assert(forall(s24, x => x % 2 == 0), "All elements in {2,4} are even")
+      assert(!forall(s1234, x => x % 2 == 0), "Not all elements in {1,2,3,4} are even")
+
+      // 모든 원소가 10보다 작은가?
+      assert(forall(s1234, x => x < 10), "All elements are < 10")
+      assert(!forall(s1234, x => x < 3), "Not all elements are < 3")
+
+      // 빈 집합에서는 항상 true (공허한 참)
+      val emptySet = intersect(s1, s2)  // 공집합
+      assert(forall(emptySet, x => x > 1000), "Empty set: vacuous truth")
+      assert(forall(emptySet, x => x < -1000), "Empty set: vacuous truth 2")
+    }
+  }
+
+  test("exists tests") {
+    new TestSets {
+      val s1234 = union(union(s1, s2), union(s3, s4))  // {1, 2, 3, 4}
+      val s13 = union(s1, s3)  // {1, 3}
+
+      // 짝수가 존재하는가?
+      assert(exists(s1234, x => x % 2 == 0), "Even number exists in {1,2,3,4}")
+      assert(!exists(s13, x => x % 2 == 0), "No even number in {1,3}")
+
+      // 2보다 큰 수가 존재하는가?
+      assert(exists(s1234, x => x > 2), "Number > 2 exists in {1,2,3,4}")
+      assert(!exists(s1, x => x > 2), "No number > 2 in {1}")
+
+      // 특정 값이 존재하는가?
+      assert(exists(s1234, x => x == 3), "3 exists in {1,2,3,4}")
+      assert(!exists(s1234, x => x == 5), "5 does not exist in {1,2,3,4}")
+
+      // 빈 집합에서는 항상 false
+      val emptySet = intersect(s1, s2)  // 공집합
+      assert(!exists(emptySet, x => x > 0), "Empty set: nothing exists")
+      assert(!exists(emptySet, x => true), "Empty set: even trivial condition false")
+    }
+  }
+
+  test("map tests") {
+    new TestSets {
+      val s12 = union(s1, s2)  // {1, 2}
+      val s123 = union(s12, s3)  // {1, 2, 3}
+
+      // 2배 변환
+      val doubled = map(s12, x => x * 2)  // {2, 4}
+      assert(contains(doubled, 2), "Doubled set contains 2")
+      assert(contains(doubled, 4), "Doubled set contains 4")
+      assert(!contains(doubled, 1), "Doubled set does not contain 1")
+      assert(!contains(doubled, 3), "Doubled set does not contain 3")
+
+      // 제곱 변환
+      val squared = map(s123, x => x * x)  // {1, 4, 9}
+      assert(contains(squared, 1), "Squared set contains 1")
+      assert(contains(squared, 4), "Squared set contains 4")
+      assert(contains(squared, 9), "Squared set contains 9")
+      assert(!contains(squared, 2), "Squared set does not contain 2")
+      assert(!contains(squared, 3), "Squared set does not contain 3")
+
+      // 상수 변환 (모든 원소를 같은 값으로)
+      val constant = map(s123, x => 5)  // {5}
+      assert(contains(constant, 5), "Constant map contains 5")
+      assert(!contains(constant, 1), "Constant map does not contain original elements")
+
+      // +1 변환
+      val incremented = map(s12, x => x + 1)  // {2, 3}
+      assert(contains(incremented, 2), "Incremented set contains 2")
+      assert(contains(incremented, 3), "Incremented set contains 3")
+      assert(!contains(incremented, 1), "Incremented set does not contain 1")
+
+      // 중복 제거 테스트 (여러 원소가 같은 값으로 매핑)
+      val s_minus1_1 = union(singletonSet(-1), s1)  // {-1, 1}
+      val absValue = map(s_minus1_1, x => if (x < 0) -x else x)  // {1}
+      assert(contains(absValue, 1), "Absolute value map contains 1")
+      assert(!contains(absValue, -1), "Absolute value map does not contain -1")
+    }
+  }
+
+  test("forall and exists relationship") {
+    new TestSets {
+      val s1234 = union(union(s1, s2), union(s3, s4))  // {1, 2, 3, 4}
+
+      // De Morgan's laws: ¬∃x.P(x) ≡ ∀x.¬P(x)
+      val condition = (x: Int) => x > 5
+      assert(
+        !exists(s1234, condition) == forall(s1234, x => !condition(x)),
+        "De Morgan's law: not exists ≡ forall not"
+      )
+
+      // ¬∀x.P(x) ≡ ∃x.¬P(x)
+      val condition2 = (x: Int) => x % 2 == 0
+      assert(
+        !forall(s1234, condition2) == exists(s1234, x => !condition2(x)),
+        "De Morgan's law: not forall ≡ exists not"
+      )
+    }
+  }
+
+  test("complex combinations2") {
+    new TestSets {
+      // 복잡한 조합 테스트
+      val s12 = union(s1, s2)  // {1, 2}
+      val s34 = union(s3, s4)  // {3, 4}
+      val s1234 = union(s12, s34)  // {1, 2, 3, 4}
+
+      // 짝수를 필터링한 후 {5}와 합집합
+      val evenThenUnion = union(filter(s1234, x => x % 2 == 0), s5)  // {2, 4, 5}
+      assert(!contains(evenThenUnion, 1), "Complex: no 1")
+      assert(contains(evenThenUnion, 2), "Complex: has 2")
+      assert(!contains(evenThenUnion, 3), "Complex: no 3")
+      assert(contains(evenThenUnion, 4), "Complex: has 4")
+      assert(contains(evenThenUnion, 5), "Complex: has 5")
+
+      // map과 filter 조합
+      val mapped = map(s12, x => x * 2)  // {2, 4}
+      val filtered = filter(s1234, x => x % 2 == 0)  // {2, 4}
+      val combined = union(mapped, filtered)  // {2, 4}
+
+      assert(forall(combined, x => x % 2 == 0), "Combined set has only even numbers")
+      assert(exists(combined, x => x == 2), "Combined set contains 2")
+      assert(exists(combined, x => x == 4), "Combined set contains 4")
+
+      // 복잡한 조건 테스트
+      val complexSet = map(filter(s1234, x => x > 2), x => x - 1)  // filter: {3,4}, map: {2,3}
+      assert(contains(complexSet, 2), "Complex operation result contains 2")
+      assert(contains(complexSet, 3), "Complex operation result contains 3")
+      assert(!contains(complexSet, 1), "Complex operation result does not contain 1")
+      assert(!contains(complexSet, 4), "Complex operation result does not contain 4")
+    }
+  }
+
+  test("edge cases and boundary conditions") {
+    new TestSets {
+      // 경계값 테스트 (-1000, 1000)
+      val boundarySet = union(singletonSet(-1000), singletonSet(1000))
+
+      assert(contains(boundarySet, -1000), "Boundary set contains -1000")
+      assert(contains(boundarySet, 1000), "Boundary set contains 1000")
+      assert(forall(boundarySet, x => x >= -1000 && x <= 1000), "All elements within bounds")
+      assert(exists(boundarySet, x => x == -1000), "Minimum boundary exists")
+      assert(exists(boundarySet, x => x == 1000), "Maximum boundary exists")
+
+      // 매우 큰 집합에서의 테스트
+      val largeRangeSet = (x: Int) => x >= -100 && x <= 100  // 201개 원소
+      assert(forall(largeRangeSet, x => x >= -100), "Large range: all >= -100")
+      assert(exists(largeRangeSet, x => x == 0), "Large range: contains 0")
+
+      val mappedLarge = map(largeRangeSet, x => x / 10)  // 매핑 후 중복 많음
+      assert(exists(mappedLarge, x => x == 0), "Mapped large set contains 0")
+      assert(exists(mappedLarge, x => x == 5), "Mapped large set contains 5")
+    }
+  }
+
 }
